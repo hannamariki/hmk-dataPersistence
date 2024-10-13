@@ -1,79 +1,86 @@
-
 import { StyleSheet, Text, View, TextInput, Button, FlatList } from 'react-native';
-import * as SQLite from 'expo-sqlite';
+import { useSQLiteContext } from 'expo-sqlite';
 import { useEffect, useState } from 'react';
 
-
 export default function App() {
-const [credit, setCredit] = useState('');
- const [title, setTitle] = useState('');
- const [courses, setCourses] = useState([]);
+  const [credit, setCredit] = useState('');
+  const [title, setTitle] = useState('');
+  const [courses, setCourses] = useState([]);
 
- const db = SQLite.useSQLiteContext()
+  const db = useSQLiteContext();
 
-
-const saveItem = async () => { //kurssin opintopistemäärä
+  const saveItem = async () => {
     try {
-      await db.runAsync('INSERT INTO course VALUES (?, ?, ?)', null, credit, title);
+      await db.runAsync('INSERT INTO course (credits, title) VALUES (?, ?)', [credit, title]);
       await updateList();
     } catch (error) {
       console.error('Could not add item', error);
     }
   };
-  
+
   const updateList = async () => {
     try {
-      const list = await db.getAllAsync('SELECT * from course'); // kysytään aina kaikki
+      const list = await db.getAllAsync('SELECT * FROM course');
       setCourses(list);
     } catch (error) {
       console.error('Could not get items', error);
     }
-  }
-  
-  const deleteItem = async (id) => { //kurssi poistetaan kun suoritettu (done painike)
-    console.log('deleteItem')
+  };
+
+  const deleteItem = async (id) => {
     try {
-      await db.runAsync('DELETE FROM course WHERE id=?', id);
+      await db.runAsync('DELETE FROM course WHERE id = ?', [id]);
       await updateList();
-    }
-    catch (error) {
+    } catch (error) {
       console.error('Could not delete item', error);
     }
-  }
-  
-  useEffect(() => {updateList()}, []); 
+  };
 
-<View style={styles.container}>
+  useEffect(() => {
+    updateList();
+  }, []);
+
+  return (
+    <View style={styles.container}>
       <TextInput 
         placeholder='Title' 
-        onChangeText={title => setTitle(title)}
-        value={title}/> 
+        onChangeText={text => setTitle(text)}
+        value={title} 
+      /> 
       <TextInput 
         placeholder='Credits' 
         keyboardType='numeric' 
-        onChangeText={credit => setCredit(credit)}
-        value={credit}/> 
+        onChangeText={text => setCredit(text)}
+        value={credit} 
+      /> 
       <Button onPress={saveItem} title="Save" />
       <FlatList
         keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) =>
-      <View style={styles.itemcontainer}>
-      < Text>{item.title}</Text>
-        <Text>{item.credits} </Text>
-        <Text style={{ color: '#0000ff' }} onPress={() => deleteItem(item.id)}>done</Text>
-      </View>}
-        data={courses}//courses päivittyy tänne
-/>
-     
+        renderItem={({ item }) => (
+          <View style={styles.itemContainer}>
+            <Text>{item.title}</Text>
+            <Text>{item.credits}</Text>
+            <Text style={{ color: '#0000ff' }} onPress={() => deleteItem(item.id)}>done</Text>
+          </View>
+        )}
+        data={courses}
+      />
     </View>
-    const styles = StyleSheet.create({
-        container: {
-          flex: 1,
-          backgroundColor: '#fff',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: 30,
-        },
-      });
-      
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 30,
+  },
+  itemContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    padding: 10,
+  },
+});
